@@ -1,0 +1,46 @@
+name: party_app
+description: Aplicación de Servicios de Eventos - Flutter
+publish_to: 'none'
+version: 1.0.0+1
+
+environment:
+  sdk: '>=3.0.0 <4.0.0'
+
+dependencies:
+  flutter:
+    sdk: flutter
+  
+  # State Management
+  provider: ^6.1.1
+  
+  # Navigation
+  go_router: ^13.0.0
+  
+  # HTTP Client (para integración con backend)
+  http: ^1.1.0
+  
+  # Image Loading
+  cached_network_image: ^3.3.0
+  
+  # Icons
+  flutter_svg: ^2.0.9
+  
+  # Utils
+  intl: ^0.18.1
+  uuid: ^4.2.1
+  
+  # Google Sign-In (autenticación automática Android)
+  google_sign_in: ^6.1.6
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_lints: ^3.0.0
+
+flutter:
+  uses-material-design: true
+  
+  assets:
+    - assets/images/
+    - assets/icons/
+
