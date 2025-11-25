@@ -1,61 +1,127 @@
 import 'package:flutter/material.dart';
 import '../models/cart_item.dart';
 import '../models/service.dart';
-import '../models/provider_model.dart';
+import '../providers/auth_provider.dart'; // <- Dependencia necesaria
+import '../services/api_service.dart';     // <- Dependencia necesaria
 
 class CartProvider extends ChangeNotifier {
-  final List<CartItem> _items = [];
+  final ApiService _apiService;
+  final AuthProvider _authProvider;
 
+  List<CartItem> _items = [];
+  bool _isLoading = false;
+
+  // Constructor que recibe las dependencias
+  CartProvider(this._authProvider, this._apiService) {
+    // Si el usuario ya está logueado cuando se crea el provider,
+    // cargamos su carrito inmediatamente.
+    if (_authProvider.isLoggedIn) {
+      fetchCart();
+    }
+  }
+
+  // --- GETTERS PÚBLICOS ---
   List<CartItem> get items => _items;
+  bool get isLoading => _isLoading;
   int get itemCount => _items.fold(0, (sum, item) => sum + item.quantity);
   double get total => _items.fold(0.0, (sum, item) => sum + item.total);
 
-  void addToCart(Service service, ProviderModel provider) {
-    final existingIndex = _items.indexWhere(
-      (item) => item.service.id == service.id && item.providerId == provider.id,
-    );
+  // --- MÉTODOS QUE INTERACTÚAN CON LA API ---
 
-    if (existingIndex >= 0) {
-      _items[existingIndex] = _items[existingIndex].copyWith(
-        quantity: _items[existingIndex].quantity + 1,
-      );
-    } else {
-      _items.add(CartItem(
-        service: service,
-        quantity: 1,
-        providerId: provider.id,
-        providerName: provider.name,
-      ));
-    }
-    notifyListeners();
-  }
-
-  void updateQuantity(String serviceId, String providerId, int quantity) {
-    if (quantity <= 0) {
-      removeItem(serviceId, providerId);
+  /// Obtiene el carrito del usuario desde el backend y actualiza el estado.
+  Future<void> fetchCart() async {
+    if (!_authProvider.isLoggedIn) {
+      _items = [];
+      notifyListeners();
       return;
     }
 
-    final index = _items.indexWhere(
-      (item) => item.service.id == serviceId && item.providerId == providerId,
-    );
+    _isLoading = true;
+    notifyListeners();
 
-    if (index >= 0) {
-      _items[index] = _items[index].copyWith(quantity: quantity);
+    try {
+      final userId = _authProvider.authUser!.id;
+      // NOTA: Para que esta línea funcione, tu modelo CartItem debe tener
+      // un método `factory CartItem.fromJson(Map<String, dynamic> json)`.
+      // Por ahora, asumimos que lo tienes o lo implementarás.
+      _items = await _apiService.getCart(userId);
+    } catch (e) {
+      print('Error al obtener el carrito: $e');
+      _items = []; // En caso de error, el carrito se muestra vacío.
+    } finally {
+      _isLoading = false;
       notifyListeners();
     }
   }
 
-  void removeItem(String serviceId, String providerId) {
-    _items.removeWhere(
-      (item) => item.service.id == serviceId && item.providerId == providerId,
-    );
-    notifyListeners();
+  /// Añade un servicio al carrito del usuario en el backend.
+  Future<void> addToCart(Service service) async {
+    if (!_authProvider.isLoggedIn || service.id == null) return;
+
+    try {
+      final userId = _authProvider.authUser!.id;
+      final serviceId = service.id!;
+
+      await _apiService.addToCart(userId: userId, serviceId: serviceId);
+
+      // Después de modificar el backend, recargamos el carrito para
+      // mantener la consistencia del estado.
+      await fetchCart();
+    } catch (e) {
+      print('Error al añadir al carrito: $e');
+      // Relanzamos el error para que la UI pueda mostrar una notificación si es necesario.
+      rethrow;
+    }
   }
 
-  void clear() {
-    _items.clear();
-    notifyListeners();
+  /// Actualiza la cantidad de un item.
+  /// NOTA: Requiere un endpoint `PUT /api/cart/update` en tu backend.
+  Future<void> updateQuantity(int serviceId, int quantity) async {
+    if (!_authProvider.isLoggedIn) return;
+    if (quantity <= 0) {
+      await removeItem(serviceId);
+      return;
+    }
+
+    print('FUNCIONALIDAD PENDIENTE: Actualizar cantidad en el backend.');
+    // try {
+    //   final userId = _authProvider.authUser!.id;
+    //   await _apiService.updateCartItem(userId: userId, serviceId: serviceId, quantity: quantity);
+    //   await fetchCart();
+    // } catch (e) {
+    //   print('Error al actualizar cantidad: $e');
+    //   rethrow;
+    // }
+  }
+
+  /// Remueve un item del carrito.
+  /// NOTA: Requiere un endpoint `DELETE /api/cart/remove` en tu backend.
+  Future<void> removeItem(int serviceId) async {
+    if (!_authProvider.isLoggedIn) return;
+
+    print('FUNCIONALIDAD PENDIENTE: Remover un item específico en el backend.');
+    // try {
+    //   final userId = _authProvider.authUser!.id;
+    //   await _apiService.removeCartItem(userId: userId, serviceId: serviceId);
+    //   await fetchCart();
+    // } catch (e) {
+    //   print('Error al remover item: $e');
+    //   rethrow;
+    // }
+  }
+
+  /// Limpia todo el carrito del usuario en el backend.
+  Future<void> clear() async {
+    if (!_authProvider.isLoggedIn) return;
+
+    try {
+      final userId = _authProvider.authUser!.id;
+      await _apiService.clearCart(userId);
+      _items = []; // Actualizamos la UI inmediatamente.
+      notifyListeners();
+    } catch (e) {
+      print('Error al limpiar el carrito: $e');
+      rethrow;
+    }
   }
 }
-

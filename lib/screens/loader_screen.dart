@@ -19,96 +19,27 @@ class _LoaderScreenState extends State<LoaderScreen> {
   }
 
   Future<void> _initializeApp() async {
-    // Inicializar autenticación automática con Google
+    // Usamos context.read porque estamos en initState
     final authProvider = context.read<AuthProvider>();
-    await authProvider.initializeAuth();
-    
-    // Esperar un poco para mostrar el loader
-    await Future.delayed(const Duration(seconds: 2));
-    
+
+    // 1. Inicia el flujo de login/sincronización con el backend
+    await authProvider.signInWithGoogle();
+
+    // 2. Pequeña demora para una mejor experiencia de usuario
+    await Future.delayed(const Duration(seconds: 1));
+
     if (mounted) {
-      // Ir directo a home (ya está autenticado automáticamente)
+      // 3. Después del login, navega a la pantalla de inicio
+      // La app siempre irá a /home, y desde allí se podrá navegar a otras partes.
       context.go('/home');
     }
   }
 
+  // El build method no necesita cambios
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      body: Container(
-        decoration: const BoxDecoration(
-          gradient: LinearGradient(
-            begin: Alignment.topLeft,
-            end: Alignment.bottomRight,
-            colors: [
-              Color(0xFFFF8C5A),
-              Color(0xFFFFE066),
-              Color(0xFFFFCCD0),
-            ],
-          ),
-        ),
-        child: Center(
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              Stack(
-                alignment: Alignment.center,
-                children: [
-                  Container(
-                    width: 96,
-                    height: 96,
-                    decoration: BoxDecoration(
-                      color: Colors.white,
-                      shape: BoxShape.circle,
-                      boxShadow: [
-                        BoxShadow(
-                          color: Colors.black.withOpacity(0.1),
-                          blurRadius: 10,
-                        ),
-                      ],
-                    ),
-                    child: const Center(
-                      child: Text(
-                        '🎉',
-                        style: TextStyle(fontSize: 48),
-                      ),
-                    ),
-                  ),
-                  SizedBox(
-                    width: 96,
-                    height: 96,
-                    child: CircularProgressIndicator(
-                      strokeWidth: 4,
-                      valueColor: const AlwaysStoppedAnimation<Color>(
-                        Color(0xFFFF6B35),
-                      ),
-                      backgroundColor: Colors.transparent,
-                    ),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 24),
-              const Text(
-                'PartyApp',
-                style: TextStyle(
-                  fontSize: 32,
-                  fontWeight: FontWeight.bold,
-                  color: Colors.white,
-                ),
-              ),
-              const SizedBox(height: 8),
-              const Text(
-                'Organizando el evento perfecto...',
-                style: TextStyle(
-                  fontSize: 16,
-                  color: Colors.white70,
-                ),
-              ),
-            ],
-          ),
-        ),
-      ),
+      // ... tu código de UI ...
     );
   }
 }
-

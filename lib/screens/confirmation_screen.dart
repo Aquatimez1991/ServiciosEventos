@@ -87,9 +87,14 @@ class ConfirmationScreen extends StatelessWidget {
               SizedBox(
                 width: double.infinity,
                 child: ElevatedButton(
-                  onPressed: () {
-                    cartProvider.clear();
-                    if (authProvider.isProvider) {
+                  // CAMBIO: La función ahora es async
+                  onPressed: () async {
+                    // CAMBIO: Se añade await
+                    await cartProvider.clear();
+
+                    // Esta lógica de roles puede que ya no aplique, la dejamos por si la necesitas
+                    // en el futuro.
+                    if (authProvider.authUser?.role == 'provider') {
                       context.go('/provider-dashboard');
                     } else {
                       context.go('/home');
