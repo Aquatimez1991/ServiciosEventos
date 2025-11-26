@@ -1,14 +1,14 @@
+// lib/models/service.dart
+
 class Service {
   final int? id;
-  final String name;
+  final String name;        // Mapeado desde el campo 'title' del backend
   final String description;
-  final double price;
-  final String image;
+  final double price;       // Mapeado desde el campo 'priceSoles' del backend
+  final String image;       // Mapeado desde el campo 'imageUrl' del backend
   final String category;
-  final String? duration;
-  final String? address;
-  final String? district;
-
+  final String address;
+  final String district;
 
   Service({
     this.id,
@@ -17,61 +17,38 @@ class Service {
     required this.price,
     required this.image,
     required this.category,
-    this.address,
-    this.district,
-    this.duration,
+    required this.address,
+    required this.district,
   });
 
+  /// Crea una instancia de Service a partir de un mapa JSON de la API.
+  /// ¡ESTA ES LA PARTE CLAVE QUE HEMOS CORREGIDO!
   factory Service.fromJson(Map<String, dynamic> json) {
     return Service(
       id: json['id'],
-      name: json['name'],
-      description: json['description'],
-      price: (json['price'] as num).toDouble(),
-      image: json['image'] as String,
-      category: json['category'] as String,
-      duration: json['duration'] as String?,
-      address: json['address'] as String,
-      district: json['district'] as String,
+      // El 'name' de la app viene del campo 'title' del JSON
+      name: json['title'] ?? 'Servicio sin nombre',
+      description: json['description'] ?? 'Sin descripción.',
+      // El 'price' de la app viene del campo 'priceSoles' del JSON
+      price: (json['priceSoles'] as num? ?? 0.0).toDouble(),
+      // La 'image' de la app viene del campo 'imageUrl' del JSON
+      image: json['imageUrl'] ?? 'https://via.placeholder.com/300.png?text=Error',
+      category: json['category'] ?? 'General',
+      address: json['address'] ?? 'Dirección no especificada',
+      district: json['district'] ?? 'Distrito no especificado',
     );
   }
 
+  /// Convierte la instancia a un mapa JSON para enviarlo a la API.
   Map<String, dynamic> toJson() {
     return {
-      'id': id,
-      'name': name,
+      'title': name,
       'description': description,
-      'price': price,
-      'image': image,
+      'priceSoles': price,
+      'imageUrl': image,
       'category': category,
-      'duration': duration,
       'address': address,
       'district': district,
     };
   }
-
-  Service copyWith({
-    int? id,
-    String? name,
-    String? description,
-    double? price,
-    String? image,
-    String? category,
-    String? duration,
-    String? address,
-    String? district,
-  }) {
-    return Service(
-      id: id ?? this.id,
-      name: name ?? this.name,
-      description: description ?? this.description,
-      price: price ?? this.price,
-      image: image ?? this.image,
-      category: category ?? this.category,
-      duration: duration ?? this.duration,
-      address: address ?? this.address,
-      district: district ?? this.district,
-    );
-  }
 }
-

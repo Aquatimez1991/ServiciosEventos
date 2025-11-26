@@ -15,7 +15,6 @@ class HomeScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    // Escuchamos a los providers que necesitamos
     final serviceProvider = context.watch<ServiceProvider>();
     final authProvider = context.watch<AuthProvider>();
 
@@ -36,34 +35,46 @@ class HomeScreen extends StatelessWidget {
           ),
         ],
       ),
-      body: serviceProvider.isLoading
-          ? const Center(child: CircularProgressIndicator()) // Si está cargando, muestra un spinner
-          : serviceProvider.services.isEmpty
-          ? const Center( // Si no hay servicios, muestra un mensaje
-        child: Text(
-          'No hay servicios disponibles en este momento.',
-          style: TextStyle(fontSize: 16),
+      body: _buildBody(context, serviceProvider),
+    );
+  }
+
+  Widget _buildBody(BuildContext context, ServiceProvider serviceProvider) {
+    if (serviceProvider.isLoading) {
+      return const Center(child: CircularProgressIndicator());
+    }
+
+    if (serviceProvider.services.isEmpty) {
+      return const Center(
+        child: Padding(
+          padding: EdgeInsets.all(16.0),
+          child: Text(
+            'No hay servicios disponibles en este momento. Inténtalo de nuevo más tarde.',
+            textAlign: TextAlign.center,
+            style: TextStyle(fontSize: 16, color: Colors.grey),
+          ),
         ),
-      )
-          : GridView.builder( // Si hay servicios, los muestra en una cuadrícula
-        padding: const EdgeInsets.all(16),
-        gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-          crossAxisCount: 2,
-          crossAxisSpacing: 16,
-          mainAxisSpacing: 16,
-          childAspectRatio: 0.75, // Ajusta esto para el tamaño de tus tarjetas
-        ),
-        itemCount: serviceProvider.services.length,
-        itemBuilder: (context, index) {
-          final service = serviceProvider.services[index];
-          return _ServiceCard(service: service);
-        },
+      );
+    }
+
+    return GridView.builder(
+      padding: const EdgeInsets.all(16),
+      gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+        crossAxisCount: 2,
+        crossAxisSpacing: 16,
+        mainAxisSpacing: 16,
+        childAspectRatio: 0.75,
       ),
+      itemCount: serviceProvider.services.length,
+      itemBuilder: (context, index) {
+        final service = serviceProvider.services[index];
+        return _ServiceCard(service: service);
+      },
     );
   }
 }
 
-// Widget para mostrar cada tarjeta de servicio
+// Widget para la tarjeta de cada servicio
 class _ServiceCard extends StatelessWidget {
   final Service service;
 
@@ -75,6 +86,8 @@ class _ServiceCard extends StatelessWidget {
 
     return Card(
       clipBehavior: Clip.antiAlias,
+      elevation: 4,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
@@ -83,7 +96,7 @@ class _ServiceCard extends StatelessWidget {
               imageUrl: service.image,
               fit: BoxFit.cover,
               placeholder: (context, url) => Container(color: Colors.grey[200]),
-              errorWidget: (context, url, error) => const Icon(Icons.image_not_supported, color: Colors.grey),
+              errorWidget: (context, url, error) => const Icon(Icons.image_not_supported, color: Colors.grey, size: 48),
             ),
           ),
           Padding(
@@ -93,7 +106,7 @@ class _ServiceCard extends StatelessWidget {
               children: [
                 Text(
                   service.name,
-                  style: const TextStyle(fontWeight: FontWeight.bold),
+                  style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
                 ),

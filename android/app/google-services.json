@@ -1,0 +1,38 @@
+{
+  "project_info": {
+    "project_number": "654629977844",
+    "project_id": "party-app-c8921",
+    "storage_bucket": "party-app-c8921.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:654629977844:android:dd9ad9907f3980bb0ca8a1",
+        "android_client_info": {
+          "package_name": "com.partyapp.party_app"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "654629977844-6tm5nro7if5voifo60mkvnnbo1a16te3.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.partyapp.party_app",
+            "certificate_hash": "5514958ee46a4a2c72dda3f059e835d4b7549aca"
+          }
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyBPpIxQCWS8mE9XzxUB3hOEZrPRynfgggQ"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

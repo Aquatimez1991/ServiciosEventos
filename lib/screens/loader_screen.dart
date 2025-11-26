@@ -1,7 +1,10 @@
+// lib/screens/loader_screen.dart
+
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
 import 'dart:async';
+
 import '../providers/auth_provider.dart';
 
 class LoaderScreen extends StatefulWidget {
@@ -18,28 +21,39 @@ class _LoaderScreenState extends State<LoaderScreen> {
     _initializeApp();
   }
 
+  /// Esta es la función clave que inicia todo.
   Future<void> _initializeApp() async {
-    // Usamos context.read porque estamos en initState
+    // Usamos context.read porque estamos en initState y solo necesitamos el provider una vez.
     final authProvider = context.read<AuthProvider>();
 
-    // 1. Inicia el flujo de login/sincronización con el backend
+    // 1. ¡LA LLAMADA CRUCIAL!
+    // Le decimos al AuthProvider que inicie el proceso de login.
+    // Esto mostrará el diálogo de Google para elegir la cuenta.
     await authProvider.signInWithGoogle();
 
-    // 2. Pequeña demora para una mejor experiencia de usuario
+    // 2. Una pequeña pausa para mejorar la experiencia de usuario.
     await Future.delayed(const Duration(seconds: 1));
 
     if (mounted) {
-      // 3. Después del login, navega a la pantalla de inicio
-      // La app siempre irá a /home, y desde allí se podrá navegar a otras partes.
+      // 3. Después de que el login termine (con éxito o no), navegamos a la pantalla de inicio.
       context.go('/home');
     }
   }
 
-  // El build method no necesita cambios
+  // La UI de esta pantalla no necesita cambios, solo muestra la animación de carga.
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      // ... tu código de UI ...
+    return const Scaffold(
+      body: Center(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            CircularProgressIndicator(),
+            SizedBox(height: 20),
+            Text('Iniciando sesión...'),
+          ],
+        ),
+      ),
     );
   }
 }
