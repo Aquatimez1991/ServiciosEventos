@@ -1,404 +1,206 @@
-// TODO: Integrar con backend
-// Este servicio contiene los métodos comentados para integración con el backend
-// Descomentar y configurar cuando el backend esté listo
+// lib/services/api_service.dart
 
 import 'dart:convert';
 import 'package:http/http.dart' as http;
 import '../models/auth_user.dart';
-import '../models/provider_model.dart';
-import '../models/service.dart';
 import '../models/cart_item.dart';
-import '../models/user.dart';
+import '../models/service.dart';
+import '../models/order.dart';
+
 
 class ApiService {
-  // TODO: Configurar la URL base del backend
-  static const String baseUrl = 'https://api.partyapp.com'; // Cambiar por la URL real
+  // USA ESTA URL PARA EL EMULADOR DE ANDROID
+  static const String baseUrl = "http://10.0.2.2:8080/api";
 
   // ============================================
-  // AUTH ENDPOINTS
-  // ============================================
-
-  /*
-  /// Login de usuario
-  /// POST /api/auth/login
-  /// Body: { "username": string, "password": string, "role": "customer" | "provider" }
-  /// Returns: AuthUser
-  */
-  Future<AuthUser?> login(String username, String password, String role) async {
-    // TODO: Descomentar cuando el backend esté listo
-    /*
-    try {
-      final response = await http.post(
-        Uri.parse('$baseUrl/api/auth/login'),
-        headers: {'Content-Type': 'application/json'},
-        body: jsonEncode({
-          'username': username,
-          'password': password,
-          'role': role,
-        }),
-      );
-
-      if (response.statusCode == 200) {
-        return AuthUser.fromJson(jsonDecode(response.body));
-      }
-      return null;
-    } catch (e) {
-      print('Error en login: $e');
-      return null;
-    }
-    */
-    return null; // Mock por ahora
-  }
-
-  /*
-  /// Registro de cliente
-  /// POST /api/auth/register/customer
-  /// Body: { "username": string, "password": string, "name": string, "email": string, "phone": string, "address": string }
-  /// Returns: AuthUser
-  */
-  Future<AuthUser?> registerCustomer({
-    required String username,
-    required String password,
+  // NUEVO MÉTODO
+  Future<AuthUser> loginOrRegisterWithGoogle({
     required String name,
     required String email,
-    required String phone,
-    required String address,
   }) async {
-    // TODO: Descomentar cuando el backend esté listo
-    /*
     try {
       final response = await http.post(
-        Uri.parse('$baseUrl/api/auth/register/customer'),
+        Uri.parse('$baseUrl/auth/login-or-register'),
+        headers: {'Content-Type': 'application/json'},
+        body: jsonEncode({'name': name, 'email': email}),
+      );
+
+      if (response.statusCode == 200) {
+        // El backend devuelve el usuario de la BD, lo convertimos a nuestro AuthUser
+        return AuthUser.fromJson(jsonDecode(utf8.decode(response.bodyBytes)));
+      } else {
+        throw Exception('Error al sincronizar con el backend: ${response.body}');
+      }
+    } catch (e) {
+      print('Error en loginOrRegisterWithGoogle: $e');
+      throw Exception('No se pudo comunicar con el servidor para iniciar sesión.');
+    }
+  }
+  // ============================================
+
+  // Obtiene la lista plana de todos los servicios
+  Future<List<Service>> fetchServices() async {
+    try {
+      final response = await http.get(Uri.parse('$baseUrl/services'));
+
+      if (response.statusCode == 200) {
+        // La respuesta del backend es UTF-8, decodifiquemos correctamente
+        final List<dynamic> data = jsonDecode(utf8.decode(response.bodyBytes));
+        return data.map((json) => Service.fromJson(json)).toList();
+      } else {
+        throw Exception('Error al cargar los servicios: ${response.statusCode}');
+      }
+    } catch (e) {
+      print('Error en fetchServices: $e');
+      throw Exception('No se pudieron obtener los servicios. Revisa tu conexión.');
+    }
+  }
+
+  // Obtiene un servicio específico por su ID
+  Future<Service?> getServiceById(int id) async {
+    try {
+      final response = await http.get(Uri.parse('$baseUrl/services/${id.toString()}'));
+
+      if (response.statusCode == 200) {
+        return Service.fromJson(jsonDecode(utf8.decode(response.bodyBytes)));
+      } else if (response.statusCode == 404) {
+        return null;
+      } else {
+        throw Exception('Error al obtener el servicio: ${response.statusCode}');
+      }
+    } catch (e) {
+      print('Error en getServiceById: $e');
+      throw Exception('No se pudo obtener el servicio.');
+    }
+  }
+
+  // ============================================
+  Future<void> updateCartItem({
+    required int userId,
+    required int serviceId,
+    required int quantity,
+  }) async {
+    final response = await http.put(
+      Uri.parse('$baseUrl/cart/update'),
+      headers: {'Content-Type': 'application/json'},
+      body: jsonEncode({
+        'userId': userId,
+        'serviceId': serviceId,
+        'quantity': quantity,
+      }),
+    );
+
+    if (response.statusCode != 200) {
+      throw Exception('Error al actualizar item');
+    }
+  }
+  Future<void> removeCartItem({
+    required int userId,
+    required int serviceId,
+  }) async {
+    final response = await http.delete(
+      Uri.parse('$baseUrl/cart/remove'),
+      headers: {'Content-Type': 'application/json'},
+      body: jsonEncode({
+        'userId': userId,
+        'serviceId': serviceId,
+      }),
+    );
+
+    if (response.statusCode != 200) {
+      throw Exception('Error al eliminar item');
+    }
+  }
+
+  // ============================================
+
+
+  /// Obtiene el carrito de un usuario desde el backend.
+  Future<List<CartItem>> getCart(int userId) async {
+    try {
+      final response = await http.get(
+        Uri.parse('$baseUrl/cart/${userId.toString()}'),
+      );
+
+      if (response.statusCode == 200) {
+        final List<dynamic> data =
+        jsonDecode(utf8.decode(response.bodyBytes));
+
+        // CAMBIO: Ahora usamos el factory fromJson para convertir cada item.
+        return data.map((json) => CartItem.fromJson(json)).toList();
+      } else {
+        throw Exception(
+          'Error al obtener el carrito: ${response.statusCode}',
+        );
+      }
+    } catch (e) {
+      print('Error en getCart: $e');
+      throw Exception('No se pudo obtener el carrito.');
+    }
+  }
+
+
+  // Agrega un item al carrito
+  Future<void> addToCart({required int userId, required int serviceId, int quantity = 1}) async {
+    try {
+      final response = await http.post(
+        Uri.parse('$baseUrl/cart/add'),
         headers: {'Content-Type': 'application/json'},
         body: jsonEncode({
-          'username': username,
-          'password': password,
-          'name': name,
-          'email': email,
-          'phone': phone,
-          'address': address,
+          'userId': userId,
+          'serviceId': serviceId,
+          'quantity': quantity,
         }),
       );
 
-      if (response.statusCode == 201) {
-        return AuthUser.fromJson(jsonDecode(response.body));
+      if (response.statusCode != 200) { // O 201 si tu API devuelve CREATED
+        throw Exception('Error al agregar al carrito: ${response.statusCode}');
       }
-      return null;
     } catch (e) {
-      print('Error en registro cliente: $e');
-      return null;
+      print('Error en addToCart: $e');
+      throw Exception('No se pudo agregar el servicio al carrito.');
     }
-    */
-    return null; // Mock por ahora
   }
 
-  /*
-  /// Registro de proveedor
-  /// POST /api/auth/register/provider
-  /// Body: { "username": string, "password": string, "name": string, "email": string, "phone": string, "businessName": string, "location": string, "description": string }
-  /// Returns: AuthUser
-  */
-  Future<AuthUser?> registerProvider({
-    required String username,
-    required String password,
-    required String name,
-    required String email,
-    required String phone,
-    required String businessName,
-    required String location,
-    required String description,
-  }) async {
-    // TODO: Descomentar cuando el backend esté listo
-    /*
+  // Limpia el carrito de un usuario
+  Future<void> clearCart(int userId) async {
     try {
-      final response = await http.post(
-        Uri.parse('$baseUrl/api/auth/register/provider'),
-        headers: {'Content-Type': 'application/json'},
-        body: jsonEncode({
-          'username': username,
-          'password': password,
-          'name': name,
-          'email': email,
-          'phone': phone,
-          'businessName': businessName,
-          'location': location,
-          'description': description,
-        }),
-      );
+      final response = await http.delete(Uri.parse('$baseUrl/cart/clear/${userId.toString()}'));
 
-      if (response.statusCode == 201) {
-        return AuthUser.fromJson(jsonDecode(response.body));
+      if (response.statusCode != 200) {
+        throw Exception('Error al limpiar el carrito: ${response.statusCode}');
       }
-      return null;
     } catch (e) {
-      print('Error en registro proveedor: $e');
-      return null;
+      print('Error en clearCart: $e');
+      throw Exception('No se pudo limpiar el carrito.');
     }
-    */
-    return null; // Mock por ahora
-  }
-
-  // ============================================
-  // PROVIDER ENDPOINTS
-  // ============================================
-
-  /*
-  /// Obtener todos los proveedores
-  /// GET /api/providers
-  /// Query params: ?category=string&search=string
-  /// Returns: List<ProviderModel>
-  */
-  Future<List<ProviderModel>> getProviders({
-    String? category,
-    String? search,
-  }) async {
-    // TODO: Descomentar cuando el backend esté listo
-    /*
-    try {
-      String url = '$baseUrl/api/providers';
-      if (category != null && category.isNotEmpty) {
-        url += '?category=$category';
-      }
-      if (search != null && search.isNotEmpty) {
-        url += category != null ? '&search=$search' : '?search=$search';
-      }
-
-      final response = await http.get(Uri.parse(url));
-
-      if (response.statusCode == 200) {
-        final List<dynamic> data = jsonDecode(response.body);
-        return data.map((json) => ProviderModel.fromJson(json)).toList();
-      }
-      return [];
-    } catch (e) {
-      print('Error obteniendo proveedores: $e');
-      return [];
-    }
-    */
-    return []; // Mock por ahora
-  }
-
-  /*
-  /// Obtener un proveedor por ID
-  /// GET /api/providers/:id
-  /// Returns: ProviderModel
-  */
-  Future<ProviderModel?> getProviderById(String id) async {
-    // TODO: Descomentar cuando el backend esté listo
-    /*
-    try {
-      final response = await http.get(Uri.parse('$baseUrl/api/providers/$id'));
-
-      if (response.statusCode == 200) {
-        return ProviderModel.fromJson(jsonDecode(response.body));
-      }
-      return null;
-    } catch (e) {
-      print('Error obteniendo proveedor: $e');
-      return null;
-    }
-    */
-    return null; // Mock por ahora
-  }
-
-  // ============================================
-  // SERVICE ENDPOINTS
-  // ============================================
-
-  /*
-  /// Crear un nuevo servicio (solo para proveedores)
-  /// POST /api/services
-  /// Headers: { "Authorization": "Bearer token" }
-  /// Body: { "name": string, "description": string, "price": number, "image": string, "category": string, "duration": string }
-  /// Returns: Service
-  */
-  Future<Service?> createService({
-    required String name,
-    required String description,
-    required double price,
-    required String image,
-    required String category,
-    String? duration,
-    required String token,
-  }) async {
-    // TODO: Descomentar cuando el backend esté listo
-    /*
-    try {
-      final response = await http.post(
-        Uri.parse('$baseUrl/api/services'),
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': 'Bearer $token',
-        },
-        body: jsonEncode({
-          'name': name,
-          'description': description,
-          'price': price,
-          'image': image,
-          'category': category,
-          'duration': duration,
-        }),
-      );
-
-      if (response.statusCode == 201) {
-        return Service.fromJson(jsonDecode(response.body));
-      }
-      return null;
-    } catch (e) {
-      print('Error creando servicio: $e');
-      return null;
-    }
-    */
-    return null; // Mock por ahora
-  }
-
-  /*
-  /// Actualizar un servicio (solo para proveedores)
-  /// PUT /api/services/:id
-  /// Headers: { "Authorization": "Bearer token" }
-  /// Body: { "name": string, "description": string, "price": number, "image": string, "category": string, "duration": string }
-  /// Returns: Service
-  */
-  Future<Service?> updateService({
-    required String id,
-    required String name,
-    required String description,
-    required double price,
-    required String image,
-    required String category,
-    String? duration,
-    required String token,
-  }) async {
-    // TODO: Descomentar cuando el backend esté listo
-    /*
-    try {
-      final response = await http.put(
-        Uri.parse('$baseUrl/api/services/$id'),
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': 'Bearer $token',
-        },
-        body: jsonEncode({
-          'name': name,
-          'description': description,
-          'price': price,
-          'image': image,
-          'category': category,
-          'duration': duration,
-        }),
-      );
-
-      if (response.statusCode == 200) {
-        return Service.fromJson(jsonDecode(response.body));
-      }
-      return null;
-    } catch (e) {
-      print('Error actualizando servicio: $e');
-      return null;
-    }
-    */
-    return null; // Mock por ahora
-  }
-
-  /*
-  /// Eliminar un servicio (solo para proveedores)
-  /// DELETE /api/services/:id
-  /// Headers: { "Authorization": "Bearer token" }
-  /// Returns: bool
-  */
-  Future<bool> deleteService(String id, String token) async {
-    // TODO: Descomentar cuando el backend esté listo
-    /*
-    try {
-      final response = await http.delete(
-        Uri.parse('$baseUrl/api/services/$id'),
-        headers: {'Authorization': 'Bearer $token'},
-      );
-
-      return response.statusCode == 200;
-    } catch (e) {
-      print('Error eliminando servicio: $e');
-      return false;
-    }
-    */
-    return false; // Mock por ahora
   }
 
   // ============================================
   // ORDER ENDPOINTS
+  // Se conecta con tu OrderController
   // ============================================
 
-  /*
-  /// Crear una orden
-  /// POST /api/orders
-  /// Headers: { "Authorization": "Bearer token" }
-  /// Body: { "items": CartItem[], "user": User, "paymentMethod": string }
-  /// Returns: { "orderId": string, "total": number }
-  */
-  Future<Map<String, dynamic>?> createOrder({
-    required List<CartItem> items,
-    required User user,
-    required String paymentMethod,
-    required String token,
-  }) async {
-    // TODO: Descomentar cuando el backend esté listo
-    /*
+  Future<Order> checkout(int userId) async {
     try {
       final response = await http.post(
-        Uri.parse('$baseUrl/api/orders'),
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': 'Bearer $token',
-        },
-        body: jsonEncode({
-          'items': items.map((item) => {
-            'serviceId': item.service.id,
-            'quantity': item.quantity,
-            'providerId': item.providerId,
-          }).toList(),
-          'user': user.toJson(),
-          'paymentMethod': paymentMethod,
-        }),
-      );
-
-      if (response.statusCode == 201) {
-        return jsonDecode(response.body);
-      }
-      return null;
-    } catch (e) {
-      print('Error creando orden: $e');
-      return null;
-    }
-    */
-    return null; // Mock por ahora
-  }
-
-  /*
-  /// Obtener órdenes del usuario
-  /// GET /api/orders
-  /// Headers: { "Authorization": "Bearer token" }
-  /// Returns: List<Order>
-  */
-  Future<List<Map<String, dynamic>>> getUserOrders(String token) async {
-    // TODO: Descomentar cuando el backend esté listo
-    /*
-    try {
-      final response = await http.get(
-        Uri.parse('$baseUrl/api/orders'),
-        headers: {'Authorization': 'Bearer $token'},
+        Uri.parse('$baseUrl/orders/checkout/${userId.toString()}'),
       );
 
       if (response.statusCode == 200) {
-        final List<dynamic> data = jsonDecode(response.body);
-        return data.cast<Map<String, dynamic>>();
+        // Decodificamos la respuesta y convertimos a Order usando el factory.
+        return Order.fromJson(
+          jsonDecode(utf8.decode(response.bodyBytes)),
+        );
+      } else {
+        throw Exception(
+          'Error al procesar el pedido: ${response.statusCode}',
+        );
       }
-      return [];
     } catch (e) {
-      print('Error obteniendo órdenes: $e');
-      return [];
+      print('Error en checkout: $e');
+      throw Exception('No se pudo procesar el pedido.');
     }
-    */
-    return []; // Mock por ahora
   }
-}
 
+}

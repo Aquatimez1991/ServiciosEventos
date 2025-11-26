@@ -1,49 +1,40 @@
 enum UserRole { customer, provider }
 
+// lib/models/auth_user.dart
 class AuthUser {
-  final String username;
-  final UserRole role;
+  final int id; // ¡IMPORTANTE! El ID de tu base de datos
   final String name;
   final String email;
-  final String? phone;
-  final String? address;
-  final String? businessName;
-  final String? providerId;
+  final String role; // 'customer' o 'provider'
+  final String? token;
 
   AuthUser({
-    required this.username,
-    required this.role,
+    required this.id,
     required this.name,
     required this.email,
-    this.phone,
-    this.address,
-    this.businessName,
-    this.providerId,
+    required this.role,
+    this.token,
   });
 
   factory AuthUser.fromJson(Map<String, dynamic> json) {
     return AuthUser(
-      username: json['username'] as String,
-      role: json['role'] == 'provider' ? UserRole.provider : UserRole.customer,
-      name: json['name'] as String,
-      email: json['email'] as String,
-      phone: json['phone'] as String?,
-      address: json['address'] as String?,
-      businessName: json['businessName'] as String?,
-      providerId: json['providerId'] as String?,
+      id: json['id'], // Mapea el ID
+      name: json['name'],
+      email: json['email'],
+      role: json['role'] ?? 'customer', // Asigna un rol por defecto si no viene
+      token: json['token'],
     );
   }
 
+
   Map<String, dynamic> toJson() {
     return {
-      'username': username,
-      'role': role == UserRole.provider ? 'provider' : 'customer',
+      'id': id,
       'name': name,
       'email': email,
-      'phone': phone,
-      'address': address,
-      'businessName': businessName,
-      'providerId': providerId,
+      'role': role,
+      'token': token,
+
     };
   }
 }
