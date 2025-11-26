@@ -14,7 +14,6 @@ class CartProvider extends ChangeNotifier {
   List<CartItem> _items = [];
   bool _isLoading = false;
 
-
   // Constructor que recibe las dependencias
   CartProvider(this._authProvider, this._apiService) {
     // Si el usuario ya está logueado cuando se crea el provider,
@@ -70,54 +69,55 @@ class CartProvider extends ChangeNotifier {
       await _apiService.addToCart(userId: userId, serviceId: serviceId);
 
       // Después de modificar el backend, recargamos el carrito
-      // para mantener la consistencia del estado.
       await fetchCart();
     } catch (e) {
       print('Error al añadir al carrito: $e');
-      // Relanzamos el error para que la UI pueda mostrar una notificación si es necesario.
       rethrow;
     }
   }
 
   /// Actualiza la cantidad de un item.
-  /// NOTA: Requiere un endpoint `PUT /api/cart/update` en tu backend.
+  /// Llama al endpoint `PUT /cart/update` en tu backend.
   Future<void> updateQuantity(int serviceId, int quantity) async {
     if (!_authProvider.isLoggedIn) return;
+    final userId = _authProvider.authUser!.id;
 
     if (quantity <= 0) {
       await removeItem(serviceId);
       return;
     }
 
-    print('FUNCIONALIDAD PENDIENTE: Actualizar cantidad en el backend.');
-    // try {
-    //   final userId = _authProvider.authUser!.id;
-    //   await _apiService.updateCartItem(
-    //     userId: userId,
-    //     serviceId: serviceId,
-    //     quantity: quantity,
-    //   );
-    //   await fetchCart();
-    // } catch (e) {
-    //   print('Error al actualizar cantidad: $e');
-    //   rethrow;
-    // }
+    try {
+      // LLAMADA REAL A LA API
+      await _apiService.updateCartItem(
+        userId: userId,
+        serviceId: serviceId,
+        quantity: quantity,
+      );
+      await fetchCart(); // Refrescar el estado desde la fuente de verdad
+    } catch (e) {
+      print('Error al actualizar cantidad: $e');
+      throw Exception('No se pudo actualizar la cantidad.');
+    }
   }
 
   /// Remueve un item del carrito.
-  /// NOTA: Requiere un endpoint `DELETE /api/cart/remove` en tu backend.
+  /// Llama al endpoint `DELETE /cart/remove` en tu backend.
   Future<void> removeItem(int serviceId) async {
     if (!_authProvider.isLoggedIn) return;
+    final userId = _authProvider.authUser!.id;
 
-    print('FUNCIONALIDAD PENDIENTE: Remover un item específico en el backend.');
-    // try {
-    //   final userId = _authProvider.authUser!.id;
-    //   await _apiService.removeCartItem(userId: userId, serviceId: serviceId);
-    //   await fetchCart();
-    // } catch (e) {
-    //   print('Error al remover item: $e');
-    //   rethrow;
-    // }
+    try {
+      // LLAMADA REAL A LA API
+      await _apiService.removeCartItem(
+        userId: userId,
+        serviceId: serviceId,
+      );
+      await fetchCart(); // Refrescar el estado desde la fuente de verdad
+    } catch (e) {
+      print('Error al remover item: $e');
+      throw Exception('No se pudo eliminar el servicio del carrito.');
+    }
   }
 
   /// Limpia todo el carrito del usuario en el backend.
@@ -136,6 +136,7 @@ class CartProvider extends ChangeNotifier {
     }
   }
 
+  /// Procesa el checkout y devuelve la orden creada.
   Future<Order> checkout() async {
     if (!_authProvider.isLoggedIn) {
       throw Exception('Usuario no autenticado.');
@@ -154,8 +155,7 @@ class CartProvider extends ChangeNotifier {
       return createdOrder;
     } catch (e) {
       print('Error durante el checkout: $e');
-      rethrow; // Relanza el error para que la UI lo maneje
+      rethrow;
     }
   }
-
 }

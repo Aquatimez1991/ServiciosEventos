@@ -75,8 +75,43 @@ class ApiService {
   }
 
   // ============================================
-  // CART ENDPOINTS
-  // Se conecta con tu CartController
+  Future<void> updateCartItem({
+    required int userId,
+    required int serviceId,
+    required int quantity,
+  }) async {
+    final response = await http.put(
+      Uri.parse('$baseUrl/cart/update'),
+      headers: {'Content-Type': 'application/json'},
+      body: jsonEncode({
+        'userId': userId,
+        'serviceId': serviceId,
+        'quantity': quantity,
+      }),
+    );
+
+    if (response.statusCode != 200) {
+      throw Exception('Error al actualizar item');
+    }
+  }
+  Future<void> removeCartItem({
+    required int userId,
+    required int serviceId,
+  }) async {
+    final response = await http.delete(
+      Uri.parse('$baseUrl/cart/remove'),
+      headers: {'Content-Type': 'application/json'},
+      body: jsonEncode({
+        'userId': userId,
+        'serviceId': serviceId,
+      }),
+    );
+
+    if (response.statusCode != 200) {
+      throw Exception('Error al eliminar item');
+    }
+  }
+
   // ============================================
 
 

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:go_router/go_router.dart';
+import '../models/order.dart';
 import '../providers/cart_provider.dart';
 import '../utils/formatters.dart';
 
@@ -18,31 +19,14 @@ class _PaymentScreenState extends State<PaymentScreen> {
   Widget build(BuildContext context) {
     final cartProvider = context.watch<CartProvider>();
 
-    return PopScope(
-      canPop: false,
-      onPopInvoked: (didPop) {
-        if (!didPop) {
-          if (context.canPop()) {
-            context.pop();
-          } else {
-            context.go('/cart');
-          }
-        }
-      },
-      child: Scaffold(
-        appBar: AppBar(
-          title: const Text('Método de pago'),
-          leading: IconButton(
-            icon: const Icon(Icons.arrow_back),
-            onPressed: () {
-              if (context.canPop()) {
-                context.pop();
-              } else {
-                context.go('/auth-info');
-              }
-            },
-          ),
+    return Scaffold(
+      appBar: AppBar(
+        title: const Text('Método de pago'),
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back),
+          onPressed: () => context.go('/cart'),
         ),
+      ),
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(16),
         child: Column(
@@ -63,15 +47,15 @@ class _PaymentScreenState extends State<PaymentScreen> {
                     ),
                     const SizedBox(height: 16),
                     ...cartProvider.items.map((item) => Padding(
-                          padding: const EdgeInsets.only(bottom: 8),
-                          child: Row(
-                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                            children: [
-                              Text('${item.service.name} x${item.quantity}'),
-                              Text(Formatters.formatPrice(item.total)),
-                            ],
-                          ),
-                        )),
+                      padding: const EdgeInsets.only(bottom: 8),
+                      child: Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          Text('${item.service.name} x${item.quantity}'),
+                          Text(Formatters.formatPrice(item.total)),
+                        ],
+                      ),
+                    )),
                     const Divider(),
                     Row(
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -97,7 +81,9 @@ class _PaymentScreenState extends State<PaymentScreen> {
                 ),
               ),
             ),
+
             const SizedBox(height: 16),
+
             // Payment Methods
             Card(
               child: Padding(
@@ -113,6 +99,7 @@ class _PaymentScreenState extends State<PaymentScreen> {
                       ),
                     ),
                     const SizedBox(height: 16),
+
                     RadioListTile<String>(
                       title: const Row(
                         children: [
@@ -127,6 +114,7 @@ class _PaymentScreenState extends State<PaymentScreen> {
                         setState(() => _selectedPaymentMethod = value!);
                       },
                     ),
+
                     RadioListTile<String>(
                       title: const Row(
                         children: [
@@ -141,6 +129,7 @@ class _PaymentScreenState extends State<PaymentScreen> {
                         setState(() => _selectedPaymentMethod = value!);
                       },
                     ),
+
                     RadioListTile<String>(
                       title: const Row(
                         children: [
@@ -155,29 +144,24 @@ class _PaymentScreenState extends State<PaymentScreen> {
                         setState(() => _selectedPaymentMethod = value!);
                       },
                     ),
+
                     const SizedBox(height: 24),
+
                     SizedBox(
                       width: double.infinity,
                       child: ElevatedButton(
                         onPressed: () async {
                           final cartProvider = context.read<CartProvider>();
-
                           try {
-                            // Opcional: mostrar un indicador de carga mientras se procesa
-                            // showDialog(... CircularProgressIndicator ...);
+                            final Order newOrder = await cartProvider.checkout();
 
-                            // Procesa el checkout en el backend
-                            final newOrder = await cartProvider.checkout();
-
-                            // Si todo sale bien, navega a la pantalla de confirmación
-                            // Puedes pasar el ID de la orden si lo necesitas
-                            context.go('/confirmation', extra: newOrder.id);
-
+                            if (context.mounted) {
+                              context.go('/confirmation', extra: newOrder);
+                            }
                           } catch (e) {
-                            // Muestra un SnackBar con el error
                             ScaffoldMessenger.of(context).showSnackBar(
                               SnackBar(
-                                content: Text('Error al procesar el pago: ${e.toString()}'),
+                                content: Text('Error al procesar el pago: $e'),
                               ),
                             );
                           }
@@ -192,8 +176,6 @@ class _PaymentScreenState extends State<PaymentScreen> {
           ],
         ),
       ),
-      ),
     );
   }
 }
-
