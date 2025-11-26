@@ -1,32 +1,31 @@
-import 'service.dart';
+// lib/models/cart_item.dart
+
+import 'service.dart'; // Necesitamos el modelo Service para el item anidado
 
 class CartItem {
-  final Service service;
+  final int id;
+  final Service service; // Un CartItem contiene un objeto Service completo
   final int quantity;
-  final String providerId;
-  final String providerName;
 
+  // Constructor
   CartItem({
+    required this.id,
     required this.service,
     required this.quantity,
-    required this.providerId,
-    required this.providerName,
   });
 
+  // El total se puede calcular en el frontend
   double get total => service.price * quantity;
 
-  CartItem copyWith({
-    Service? service,
-    int? quantity,
-    String? providerId,
-    String? providerName,
-  }) {
+  /// ¡LA CLAVE!
+  /// Este factory sabe cómo "leer" el JSON que viene de tu backend.
+  factory CartItem.fromJson(Map<String, dynamic> json) {
     return CartItem(
-      service: service ?? this.service,
-      quantity: quantity ?? this.quantity,
-      providerId: providerId ?? this.providerId,
-      providerName: providerName ?? this.providerName,
+      id: json['id'],
+      // El JSON del backend incluye un objeto 'service' anidado.
+      // Usamos Service.fromJson para convertir ese objeto también.
+      service: Service.fromJson(json['service']),
+      quantity: json['quantity'],
     );
   }
 }
-

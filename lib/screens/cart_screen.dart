@@ -74,7 +74,7 @@ class CartScreen extends StatelessWidget {
                                   ),
                                 ),
                                 Text(
-                                  item.providerName,
+                                  item.service.district,
                                   style: const TextStyle(
                                     fontSize: 12,
                                     color: Colors.grey,

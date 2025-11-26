@@ -1,8 +1,11 @@
+// lib/providers/cart_provider.dart
+
 import 'package:flutter/material.dart';
 import '../models/cart_item.dart';
 import '../models/service.dart';
-import '../providers/auth_provider.dart'; // <- Dependencia necesaria
-import '../services/api_service.dart';     // <- Dependencia necesaria
+import '../providers/auth_provider.dart'; // Dependencia necesaria
+import '../services/api_service.dart';     // Dependencia necesaria
+import '../models/order.dart';
 
 class CartProvider extends ChangeNotifier {
   final ApiService _apiService;
@@ -10,6 +13,7 @@ class CartProvider extends ChangeNotifier {
 
   List<CartItem> _items = [];
   bool _isLoading = false;
+
 
   // Constructor que recibe las dependencias
   CartProvider(this._authProvider, this._apiService) {
@@ -41,10 +45,11 @@ class CartProvider extends ChangeNotifier {
 
     try {
       final userId = _authProvider.authUser!.id;
-      // NOTA: Para que esta línea funcione, tu modelo CartItem debe tener
-      // un método `factory CartItem.fromJson(Map<String, dynamic> json)`.
-      // Por ahora, asumimos que lo tienes o lo implementarás.
+
+      // Usamos directamente el método getCart del ApiService.
       _items = await _apiService.getCart(userId);
+
+      print('¡Carrito cargado desde el backend! Items: ${_items.length}');
     } catch (e) {
       print('Error al obtener el carrito: $e');
       _items = []; // En caso de error, el carrito se muestra vacío.
@@ -64,8 +69,8 @@ class CartProvider extends ChangeNotifier {
 
       await _apiService.addToCart(userId: userId, serviceId: serviceId);
 
-      // Después de modificar el backend, recargamos el carrito para
-      // mantener la consistencia del estado.
+      // Después de modificar el backend, recargamos el carrito
+      // para mantener la consistencia del estado.
       await fetchCart();
     } catch (e) {
       print('Error al añadir al carrito: $e');
@@ -78,6 +83,7 @@ class CartProvider extends ChangeNotifier {
   /// NOTA: Requiere un endpoint `PUT /api/cart/update` en tu backend.
   Future<void> updateQuantity(int serviceId, int quantity) async {
     if (!_authProvider.isLoggedIn) return;
+
     if (quantity <= 0) {
       await removeItem(serviceId);
       return;
@@ -86,7 +92,11 @@ class CartProvider extends ChangeNotifier {
     print('FUNCIONALIDAD PENDIENTE: Actualizar cantidad en el backend.');
     // try {
     //   final userId = _authProvider.authUser!.id;
-    //   await _apiService.updateCartItem(userId: userId, serviceId: serviceId, quantity: quantity);
+    //   await _apiService.updateCartItem(
+    //     userId: userId,
+    //     serviceId: serviceId,
+    //     quantity: quantity,
+    //   );
     //   await fetchCart();
     // } catch (e) {
     //   print('Error al actualizar cantidad: $e');
@@ -117,6 +127,7 @@ class CartProvider extends ChangeNotifier {
     try {
       final userId = _authProvider.authUser!.id;
       await _apiService.clearCart(userId);
+
       _items = []; // Actualizamos la UI inmediatamente.
       notifyListeners();
     } catch (e) {
@@ -124,4 +135,27 @@ class CartProvider extends ChangeNotifier {
       rethrow;
     }
   }
+
+  Future<Order> checkout() async {
+    if (!_authProvider.isLoggedIn) {
+      throw Exception('Usuario no autenticado.');
+    }
+
+    try {
+      final userId = _authProvider.authUser!.id;
+
+      // Llamamos al ApiService para procesar el checkout
+      final createdOrder = await _apiService.checkout(userId);
+
+      // Después de un checkout exitoso, limpiamos el carrito local
+      _items = [];
+      notifyListeners();
+
+      return createdOrder;
+    } catch (e) {
+      print('Error durante el checkout: $e');
+      rethrow; // Relanza el error para que la UI lo maneje
+    }
+  }
+
 }

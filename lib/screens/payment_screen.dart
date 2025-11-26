@@ -159,9 +159,28 @@ class _PaymentScreenState extends State<PaymentScreen> {
                     SizedBox(
                       width: double.infinity,
                       child: ElevatedButton(
-                        onPressed: () {
-                          // TODO: Procesar pago con backend
-                          context.go('/confirmation');
+                        onPressed: () async {
+                          final cartProvider = context.read<CartProvider>();
+
+                          try {
+                            // Opcional: mostrar un indicador de carga mientras se procesa
+                            // showDialog(... CircularProgressIndicator ...);
+
+                            // Procesa el checkout en el backend
+                            final newOrder = await cartProvider.checkout();
+
+                            // Si todo sale bien, navega a la pantalla de confirmación
+                            // Puedes pasar el ID de la orden si lo necesitas
+                            context.go('/confirmation', extra: newOrder.id);
+
+                          } catch (e) {
+                            // Muestra un SnackBar con el error
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              SnackBar(
+                                content: Text('Error al procesar el pago: ${e.toString()}'),
+                              ),
+                            );
+                          }
                         },
                         child: const Text('Confirmar pedido'),
                       ),

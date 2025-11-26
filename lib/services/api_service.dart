@@ -5,6 +5,8 @@ import 'package:http/http.dart' as http;
 import '../models/auth_user.dart';
 import '../models/cart_item.dart';
 import '../models/service.dart';
+import '../models/order.dart';
+
 
 class ApiService {
   // USA ESTA URL PARA EL EMULADOR DE ANDROID
@@ -77,28 +79,31 @@ class ApiService {
   // Se conecta con tu CartController
   // ============================================
 
-  // Obtiene el carrito de un usuario
+
+  /// Obtiene el carrito de un usuario desde el backend.
   Future<List<CartItem>> getCart(int userId) async {
     try {
-      final response = await http.get(Uri.parse('$baseUrl/cart/${userId.toString()}'));
+      final response = await http.get(
+        Uri.parse('$baseUrl/cart/${userId.toString()}'),
+      );
 
       if (response.statusCode == 200) {
-        final List<dynamic> data = jsonDecode(utf8.decode(response.bodyBytes));
-        // Aquí necesitarás una forma de convertir el JSON del CartItem del backend
-        // a tu modelo CartItem de Flutter. Asumiré que tienes un factory fromJson.
-        // return data.map((json) => CartItem.fromJson(json)).toList();
+        final List<dynamic> data =
+        jsonDecode(utf8.decode(response.bodyBytes));
 
-        // --- TEMPORAL: Devuelve lista vacía hasta que implementes CartItem.fromJson ---
-        print('Carrito obtenido del backend, necesitas implementar CartItem.fromJson');
-        return [];
+        // CAMBIO: Ahora usamos el factory fromJson para convertir cada item.
+        return data.map((json) => CartItem.fromJson(json)).toList();
       } else {
-        throw Exception('Error al obtener el carrito: ${response.statusCode}');
+        throw Exception(
+          'Error al obtener el carrito: ${response.statusCode}',
+        );
       }
     } catch (e) {
       print('Error en getCart: $e');
       throw Exception('No se pudo obtener el carrito.');
     }
   }
+
 
   // Agrega un item al carrito
   Future<void> addToCart({required int userId, required int serviceId, int quantity = 1}) async {
@@ -141,17 +146,26 @@ class ApiService {
   // Se conecta con tu OrderController
   // ============================================
 
-  Future<void> checkout(int userId) async {
+  Future<Order> checkout(int userId) async {
     try {
-      final response = await http.post(Uri.parse('$baseUrl/orders/checkout/${userId.toString()}'),
+      final response = await http.post(
+        Uri.parse('$baseUrl/orders/checkout/${userId.toString()}'),
       );
 
-      if (response.statusCode != 200) {
-        throw Exception('Error al procesar el pedido: ${response.statusCode}');
+      if (response.statusCode == 200) {
+        // Decodificamos la respuesta y convertimos a Order usando el factory.
+        return Order.fromJson(
+          jsonDecode(utf8.decode(response.bodyBytes)),
+        );
+      } else {
+        throw Exception(
+          'Error al procesar el pedido: ${response.statusCode}',
+        );
       }
     } catch (e) {
       print('Error en checkout: $e');
       throw Exception('No se pudo procesar el pedido.');
     }
   }
+
 }
