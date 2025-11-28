@@ -1,10 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../providers/auth_provider.dart';
-import '../services/api_service.dart';
-import '../models/order.dart';
-import '../utils/formatters.dart';
-// No necesitas importar service.dart aquí explícitamente si ya lo usa el modelo Order
+import '../services/api_service.dart'; // Necesario para llamar al backend
+import '../models/order.dart';         // Necesario para el modelo Order
+import '../utils/formatters.dart';     // Para formatear precios
 
 class AccountScreen extends StatefulWidget {
   const AccountScreen({super.key});
@@ -16,17 +15,52 @@ class AccountScreen extends StatefulWidget {
 class _AccountScreenState extends State<AccountScreen> {
   bool _showOrders = false;
 
+  // --- NUEVO: TRIGGER AUTOMÁTICO ---
+  @override
+  void initState() {
+    super.initState();
+    // Ejecutamos esto después de que se dibuje el primer frame
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      final authProvider = context.read<AuthProvider>();
+      // Si NO está logueado al entrar a esta pantalla, lanzamos el popup de Google
+      if (!authProvider.isLoggedIn) {
+        authProvider.signInWithGoogle();
+      }
+    });
+  }
+  // --------------------------------
+
   @override
   Widget build(BuildContext context) {
+    // 1. Escuchamos al AuthProvider para obtener el usuario actual
     final authProvider = context.watch<AuthProvider>();
     final user = authProvider.authUser;
 
+    // --- ESTADO NO LOGUEADO (Fallback) ---
+    // Si el usuario cancela el login automático, verá esta pantalla con el botón
+    // para intentarlo de nuevo manualmente.
     if (user == null) {
-      return const Scaffold(
-        body: Center(child: CircularProgressIndicator()),
+      return Scaffold(
+        appBar: AppBar(title: const Text('Mi Cuenta')),
+        body: Center(
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              const Icon(Icons.account_circle_outlined, size: 80, color: Colors.grey),
+              const SizedBox(height: 16),
+              const Text(
+                'Inicia sesión para ver tu perfil',
+                style: TextStyle(fontSize: 18, color: Colors.grey),
+              ),
+              const SizedBox(height: 24),
+            ],
+          ),
+        ),
       );
     }
 
+    // --- ESTADO LOGUEADO (Tu código original) ---
+    // Lógica para obtener las iniciales del nombre
     final String initial = user.name.isNotEmpty ? user.name[0].toUpperCase() : '?';
 
     return Scaffold(
@@ -94,6 +128,8 @@ class _AccountScreenState extends State<AccountScreen> {
                 'Cerrar Sesión',
                     () async {
                   await authProvider.logout();
+                  // Al hacer logout, la UI se reconstruye y muestra la pantalla de "No logueado"
+                  // NO lanzamos el login automático aquí para evitar un bucle infinito
                 },
               ),
             ],
@@ -131,6 +167,7 @@ class _AccountScreenState extends State<AccountScreen> {
     );
   }
 
+  // INTEGRACIÓN DEL BACKEND
   Widget _buildOrdersSection(BuildContext context, int userId) {
     final apiService = context.read<ApiService>();
 
@@ -146,6 +183,7 @@ class _AccountScreenState extends State<AccountScreen> {
         FutureBuilder<List<Order>>(
           future: apiService.getOrders(userId),
           builder: (context, snapshot) {
+            // 1. Cargando
             if (snapshot.connectionState == ConnectionState.waiting) {
               return const Center(child: Padding(
                 padding: EdgeInsets.all(20.0),
@@ -153,6 +191,7 @@ class _AccountScreenState extends State<AccountScreen> {
               ));
             }
 
+            // 2. Error
             if (snapshot.hasError) {
               return Center(
                 child: Padding(
@@ -166,6 +205,7 @@ class _AccountScreenState extends State<AccountScreen> {
               );
             }
 
+            // 3. Sin datos
             if (!snapshot.hasData || snapshot.data!.isEmpty) {
               return Container(
                 padding: const EdgeInsets.all(16),
@@ -183,6 +223,7 @@ class _AccountScreenState extends State<AccountScreen> {
               );
             }
 
+            // 4. Datos cargados exitosamente
             final orders = snapshot.data!;
 
             return ListView.builder(
@@ -191,25 +232,11 @@ class _AccountScreenState extends State<AccountScreen> {
               itemCount: orders.length,
               itemBuilder: (context, index) {
                 final order = orders[index];
-
                 final dateStr = order.createdAt.toString().split(' ')[0];
-
-                // CORRECCIÓN AQUÍ: Obtenemos el nombre del primer servicio de la lista de items
-                String serviceName = "Servicio desconocido";
-                if (order.items.isNotEmpty) {
-                  // Tomamos el nombre del servicio del primer item
-                  serviceName = order.items.first.service.name;
-
-                  // Si hay más de uno, podemos agregar "+ X más"
-                  if (order.items.length > 1) {
-                    serviceName += " y ${order.items.length - 1} más...";
-                  }
-                }
 
                 return _buildOrderItem(
                   title: 'Pedido #${order.id}',
-                  description: serviceName, // Usamos el nombre real extraído
-                  cantidad: '${order.items.length} servicio(s)', // Cantidad de items
+                  description: '${order.items.length} servicio(s) contratado(s)',
                   price: order.total,
                   date: dateStr,
                   status: order.status,
@@ -225,7 +252,6 @@ class _AccountScreenState extends State<AccountScreen> {
   Widget _buildOrderItem({
     required String title,
     required String description,
-    required String cantidad,
     required double price,
     required String date,
     String status = '',
@@ -267,8 +293,7 @@ class _AccountScreenState extends State<AccountScreen> {
               ],
             ),
             const SizedBox(height: 4),
-            Text(description, style: TextStyle(color: Colors.black87, fontWeight: FontWeight.w500)),
-            Text(cantidad, style: TextStyle(color: Colors.grey[600], fontSize: 12)),
+            Text(description, style: TextStyle(color: Colors.grey[600])),
             const SizedBox(height: 12),
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
