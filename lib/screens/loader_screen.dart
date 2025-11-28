@@ -52,14 +52,26 @@ class _LoaderScreenState extends State<LoaderScreen>
     super.dispose();
   }
 
+// EN loader_screen.dart -> _initializeApp
+
   Future<void> _initializeApp() async {
     final authProvider = context.read<AuthProvider>();
 
-    await authProvider.signInWithGoogle();
+    // CAMBIO: Usamos tryAutoLogin en lugar de signInWithGoogle
+    final bool loggedIn = await authProvider.tryAutoLogin();
+
+    // Esperamos un poco para que se vea la animación (opcional)
     await Future.delayed(const Duration(seconds: 1));
 
     if (mounted) {
-      context.go('/home');
+      if (loggedIn) {
+        // Si recuperó sesión -> Usuario ya autenticado -> Home (con sesión)
+        context.go('/home');
+      } else {
+        // Si NO recuperó sesión -> Usuario anónimo -> Home (sin sesión)
+        // (Asumiendo que tu Home permite entrar sin login y tiene un botón de "Ingresar")
+        context.go('/home');
+      }
     }
   }
 

@@ -1,8 +1,7 @@
 // lib/providers/auth_provider.dart
 
 import 'package:flutter/material.dart';
-import 'package:google_sign_in/google_sign_in.dart';
-
+import 'package:google_sign_in/google_sign_in.dart'; // Asegúrate de tener este import
 import '../models/auth_user.dart';
 import '../services/api_service.dart';
 
@@ -13,48 +12,45 @@ class AuthProvider extends ChangeNotifier {
 
   AuthProvider(this._apiService);
 
-  /// Usuario autenticado actualmente
   AuthUser? get authUser => _authUser;
-
-  /// Estado de sesión
   bool get isLoggedIn => _authUser != null;
 
-  /// Inicia sesión con Google y sincroniza con el backend.
-  /// CAMBIO: Se ha mejorado el bloque catch para obtener más detalles del error.
+  // --- NUEVO: MÉTODO PARA AUTO-LOGIN ---
+  // Verifica si ya existe una sesión de Google activa sin abrir el popup
+  Future<bool> tryAutoLogin() async {
+    try {
+      // signInSilently intenta loguear sin interacción del usuario
+      final GoogleSignInAccount? googleUser = await _googleSignIn.signInSilently();
+
+      if (googleUser != null) {
+        print('AuthProvider: Sesión recuperada silenciosamente para ${googleUser.email}');
+
+        // Sincronizamos con tu backend para obtener el ID real
+        _authUser = await _apiService.loginOrRegisterWithGoogle(
+          name: googleUser.displayName ?? 'Usuario',
+          email: googleUser.email,
+        );
+
+        notifyListeners();
+        return true; // Éxito
+      }
+    } catch (e) {
+      print('AuthProvider: Falló el auto-login: $e');
+    }
+    return false; // No había sesión o falló
+  }
+  // -------------------------------------
+
   Future<void> signInWithGoogle() async {
+    // ... (Tu código actual de signInWithGoogle está bien)
     try {
       final GoogleSignInAccount? googleUser = await _googleSignIn.signIn();
-
-      if (googleUser == null) {
-        print('AuthProvider: El usuario canceló el inicio de sesión de Google.');
-        return;
-      }
-
-      print(
-        'AuthProvider: Login de Google exitoso para ${googleUser.email}. '
-            'Sincronizando con backend...',
-      );
-
-      _authUser = await _apiService.loginOrRegisterWithGoogle(
-        name: googleUser.displayName ?? 'Usuario Anónimo',
-        email: googleUser.email,
-      );
-
-      print('AuthProvider: ¡Usuario sincronizado! ID de backend: ${_authUser!.id}');
-      notifyListeners();
+      // ... resto del código ...
     } catch (e, stackTrace) {
-      // CAMBIO: Capturamos el error Y el stack trace.
-      print('--- ERROR FATAL DURANTE EL LOGIN DE GOOGLE ---');
-      print('TIPO DE ERROR: ${e.runtimeType}');
-      print('MENSAJE: $e');
-      print('STACK TRACE: $stackTrace');
-      print('-------------------------------------------');
-
-      await logout();
+      // ... manejo de errores ...
     }
   }
 
-  /// Cierra sesión tanto en Google como en la app.
   Future<void> logout() async {
     await _googleSignIn.signOut();
     _authUser = null;

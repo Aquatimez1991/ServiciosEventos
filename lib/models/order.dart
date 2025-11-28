@@ -1,34 +1,39 @@
 // lib/models/order.dart
 
+import 'order_item.dart';
+
 class Order {
   final int id;
-  final double totalSoles;
+  final double total;
   final String status;
   final DateTime createdAt;
+  final List<OrderItem> items;
 
-  // Constructor
   Order({
     required this.id,
-    required this.totalSoles,
+    required this.total,
     required this.status,
     required this.createdAt,
+    required this.items,
   });
 
-  /// Factory que convierte un JSON en un objeto Order.
   factory Order.fromJson(Map<String, dynamic> json) {
+    var list = json['items'] as List? ?? [];
+    List<OrderItem> itemsList = list.map((i) => OrderItem.fromJson(i)).toList();
+
     return Order(
       id: json['id'],
-      totalSoles: (json['totalSoles'] as num).toDouble(),
+      total: (json['totalSoles'] as num).toDouble(),
       status: json['status'],
       createdAt: DateTime.parse(json['createdAt']),
+      items: itemsList,
     );
   }
 
-  /// Convierte un objeto Order a JSON (útil para enviar al backend).
   Map<String, dynamic> toJson() {
     return {
       'id': id,
-      'totalSoles': totalSoles,
+      'totalSoles': total,
       'status': status,
       'createdAt': createdAt.toIso8601String(),
     };

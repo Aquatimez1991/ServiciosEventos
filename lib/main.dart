@@ -64,7 +64,7 @@ class MyApp extends StatelessWidget {
 
 final GoRouter _router = GoRouter(
   navigatorKey: _rootNavigatorKey,
-  initialLocation: '/home',
+  initialLocation: '/loader',
   routes: [
     GoRoute(
       path: '/loader',

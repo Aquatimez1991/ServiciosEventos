@@ -109,7 +109,7 @@ class _ConfirmationScreenState extends State<ConfirmationScreen>
                         children: [
                           const Text('Total pagado:'),
                           Text(
-                            Formatters.formatPrice(order.totalSoles),
+                            Formatters.formatPrice(order.total),
                             style: const TextStyle(
                               fontWeight: FontWeight.bold,
                               color: Color(0xFFFF6B35),

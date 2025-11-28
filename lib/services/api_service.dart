@@ -177,8 +177,28 @@ class ApiService {
   }
 
   // ============================================
-  // ORDER ENDPOINTS
-  // Se conecta con tu OrderController
+  // --- HISTORIAL DE PEDIDOS ---
+
+  Future<List<Order>> getOrders(int userId) async {
+    try {
+      final response = await http.get(
+        Uri.parse('$baseUrl/orders/user/${userId.toString()}'),
+      );
+
+      if (response.statusCode == 200) {
+        // Decodificamos la lista JSON
+        final List<dynamic> data = jsonDecode(utf8.decode(response.bodyBytes));
+
+        // Convertimos cada elemento JSON en un objeto Order
+        return data.map((json) => Order.fromJson(json)).toList();
+      } else {
+        throw Exception('Error al cargar pedidos: ${response.statusCode}');
+      }
+    } catch (e) {
+      print('Error en getOrders: $e');
+      throw Exception('No se pudo obtener el historial de pedidos.');
+    }
+  }
   // ============================================
 
   Future<Order> checkout(int userId) async {
