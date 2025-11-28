@@ -49,18 +49,21 @@ class _LoaderScreenState extends State<LoaderScreen> with TickerProviderStateMix
   Future<void> _initializeApp() async {
     final authProvider = context.read<AuthProvider>();
 
-    // CAMBIO IMPORTANTE: Usamos tryAutoLogin() en lugar de signInWithGoogle()
-    // Esto verifica si hay sesión sin abrir ventanas emergentes.
-    await authProvider.tryAutoLogin();
+    // Intentamos recuperar la sesión
+    final bool loggedIn = await authProvider.tryAutoLogin();
 
-    // Pequeña espera para disfrutar la animación :)
+    // Pequeña espera visual
     await Future.delayed(const Duration(seconds: 2));
 
     if (mounted) {
-      // Ya sea que se haya logueado o no, vamos al Home.
-      // Si se logueó, el Home mostrará la foto del usuario.
-      // Si no, mostrará la opción de ingresar.
-      context.go('/home');
+      if (loggedIn) {
+        // CASO 1: Sesión recuperada -> Vamos al Home directo
+        context.go('/home');
+      } else {
+        // CASO 2: No hay sesión (cerraste sesión o falló) -> Vamos a Cuenta
+        // Al llegar a Cuenta, tu otro código abrirá el popup de Google automáticamente.
+        context.go('/account');
+      }
     }
   }
 

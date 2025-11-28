@@ -223,7 +223,6 @@ class _AccountScreenState extends State<AccountScreen> {
               );
             }
 
-            // 4. Datos cargados exitosamente
             final orders = snapshot.data!;
 
             return ListView.builder(
@@ -232,11 +231,25 @@ class _AccountScreenState extends State<AccountScreen> {
               itemCount: orders.length,
               itemBuilder: (context, index) {
                 final order = orders[index];
+
                 final dateStr = order.createdAt.toString().split(' ')[0];
+
+                // CORRECCIÓN AQUÍ: Obtenemos el nombre del primer servicio de la lista de items
+                String serviceName = "Servicio desconocido";
+                if (order.items.isNotEmpty) {
+                  // Tomamos el nombre del servicio del primer item
+                  serviceName = order.items.first.service.name;
+
+                  // Si hay más de uno, podemos agregar "+ X más"
+                  if (order.items.length > 1) {
+                    serviceName += " y ${order.items.length - 1} más...";
+                  }
+                }
 
                 return _buildOrderItem(
                   title: 'Pedido #${order.id}',
-                  description: '${order.items.length} servicio(s) contratado(s)',
+                  description: serviceName, // Usamos el nombre real extraído
+                  cantidad: '${order.items.length} servicio(s)', // Cantidad de items
                   price: order.total,
                   date: dateStr,
                   status: order.status,
@@ -252,6 +265,7 @@ class _AccountScreenState extends State<AccountScreen> {
   Widget _buildOrderItem({
     required String title,
     required String description,
+    required String cantidad,
     required double price,
     required String date,
     String status = '',
@@ -293,6 +307,7 @@ class _AccountScreenState extends State<AccountScreen> {
               ],
             ),
             const SizedBox(height: 4),
+            Text(cantidad, style: TextStyle(color: Colors.grey[600])),
             Text(description, style: TextStyle(color: Colors.grey[600])),
             const SizedBox(height: 12),
             Row(
