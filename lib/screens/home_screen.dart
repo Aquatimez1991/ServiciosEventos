@@ -5,151 +5,232 @@ import 'package:provider/provider.dart';
 import 'package:go_router/go_router.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import '../providers/service_provider.dart';
-import '../providers/cart_provider.dart';
-import '../providers/auth_provider.dart';
-import '../models/service.dart';
-import '../utils/formatters.dart';
+import '../models/provider.dart' as model_provider;
 
-class HomeScreen extends StatelessWidget {
+class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
+
+  @override
+  State<HomeScreen> createState() => _HomeScreenState();
+}
+
+class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
+  TabController? _tabController;
+
+  void _onTabChanged() {
+    setState(() {});
+  }
+
+  void _setupTabControllerIfNeeded(List<model_provider.Provider> providers) {
+    final requiredLength = providers.length + 1;
+    if (_tabController == null || _tabController!.length != requiredLength) {
+      _tabController?.removeListener(_onTabChanged);
+      _tabController?.dispose();
+
+      _tabController = TabController(length: requiredLength, vsync: this);
+      _tabController!.addListener(_onTabChanged);
+    }
+  }
+
+  @override
+  void dispose() {
+    _tabController?.removeListener(_onTabChanged);
+    _tabController?.dispose();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
     final serviceProvider = context.watch<ServiceProvider>();
-    final authProvider = context.watch<AuthProvider>();
+    final allProviders = serviceProvider.providers;
+
+    if (!serviceProvider.isLoading) {
+      _setupTabControllerIfNeeded(allProviders);
+    }
+
+    final List<model_provider.Provider> filteredProviders;
+    if (serviceProvider.isLoading || _tabController == null) {
+      filteredProviders = [];
+    } else if (_tabController!.index == 0) {
+      filteredProviders = allProviders;
+    } else {
+      final providerIndex = _tabController!.index - 1;
+      if (providerIndex >= 0 && providerIndex < allProviders.length) {
+        filteredProviders = [allProviders[providerIndex]];
+      } else {
+        filteredProviders = [];
+      }
+    }
 
     return Scaffold(
       appBar: AppBar(
         title: const Text('Servicios para Eventos'),
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.shopping_cart),
-            onPressed: () => context.go('/cart'),
-          ),
-          IconButton(
-            icon: const Icon(Icons.logout),
-            onPressed: () {
-              authProvider.logout();
-              context.go('/loader');
-            },
-          ),
-        ],
+        // Los actions se han movido al ShellScaffold (barra de navegación inferior)
+        bottom: (serviceProvider.isLoading || _tabController == null)
+            ? null
+            : TabBar(
+                controller: _tabController!,
+                isScrollable: true,
+                tabs: [
+                  const Tab(text: '🎉 Todos'),
+                  ...allProviders.map(
+                      (p) => Tab(text: '${p.icon} ${p.name}')),
+                ],
+              ),
       ),
-      body: _buildBody(context, serviceProvider),
-    );
-  }
-
-  Widget _buildBody(BuildContext context, ServiceProvider serviceProvider) {
-    if (serviceProvider.isLoading) {
-      return const Center(child: CircularProgressIndicator());
-    }
-
-    if (serviceProvider.services.isEmpty) {
-      return const Center(
-        child: Padding(
-          padding: EdgeInsets.all(16.0),
-          child: Text(
-            'No hay servicios disponibles en este momento. Inténtalo de nuevo más tarde.',
-            textAlign: TextAlign.center,
-            style: TextStyle(fontSize: 16, color: Colors.grey),
-          ),
-        ),
-      );
-    }
-
-    return GridView.builder(
-      padding: const EdgeInsets.all(16),
-      gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-        crossAxisCount: 2,
-        crossAxisSpacing: 16,
-        mainAxisSpacing: 16,
-        childAspectRatio: 0.75,
-      ),
-      itemCount: serviceProvider.services.length,
-      itemBuilder: (context, index) {
-        final service = serviceProvider.services[index];
-        return _ServiceCard(service: service);
-      },
+      body: serviceProvider.isLoading
+          ? const Center(child: CircularProgressIndicator())
+          : Padding(
+              padding: const EdgeInsets.all(16.0),
+              child: GridView.builder(
+                gridDelegate:
+                    const SliverGridDelegateWithFixedCrossAxisCount(
+                  crossAxisCount: 2,
+                  crossAxisSpacing: 16,
+                  mainAxisSpacing: 16,
+                  childAspectRatio: 0.8,
+                ),
+                itemCount: filteredProviders.length,
+                itemBuilder: (context, index) {
+                  final provider = filteredProviders[index];
+                  return _ProviderCard(provider: provider);
+                },
+              ),
+            ),
     );
   }
 }
 
-// Widget para la tarjeta de cada servicio
-class _ServiceCard extends StatelessWidget {
-  final Service service;
 
-  const _ServiceCard({required this.service});
+class _ProviderCard extends StatelessWidget {
+  final model_provider.Provider provider;
+
+  const _ProviderCard({required this.provider});
 
   @override
   Widget build(BuildContext context) {
-    final cartProvider = context.read<CartProvider>();
-
-    return Card(
-      clipBehavior: Clip.antiAlias,
-      elevation: 4,
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          Expanded(
-            child: CachedNetworkImage(
-              imageUrl: service.image,
-              fit: BoxFit.cover,
-              placeholder: (context, url) => Container(color: Colors.grey[200]),
-              errorWidget: (context, url, error) => const Icon(Icons.image_not_supported, color: Colors.grey, size: 48),
-            ),
-          ),
-          Padding(
-            padding: const EdgeInsets.all(8),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  service.name,
-                  style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                ),
-                Text(
-                  service.district,
-                  style: const TextStyle(fontSize: 12, color: Colors.grey),
-                ),
-                const SizedBox(height: 4),
-                Text(
-                  Formatters.formatPrice(service.price),
-                  style: const TextStyle(
-                    fontWeight: FontWeight.bold,
-                    color: Color(0xFFFF6B35),
+    return InkWell(
+      onTap: () {
+        context.push('/category/${provider.id}');
+      },
+      child: Card(
+        clipBehavior: Clip.antiAlias,
+        elevation: 4,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            Expanded(
+              child: Stack(
+                fit: StackFit.expand,
+                children: [
+                  CachedNetworkImage(
+                    imageUrl: provider.image,
+                    fit: BoxFit.cover,
+                    placeholder: (context, url) =>
+                        Container(color: Colors.grey[200]),
+                    errorWidget: (context, url, error) => const Icon(
+                        Icons.image_not_supported,
+                        color: Colors.grey,
+                        size: 48),
                   ),
+                  Positioned(
+                    top: 8,
+                    right: 8,
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 6, vertical: 2),
+                      decoration: BoxDecoration(
+                        color: Colors.white,
+                        borderRadius: BorderRadius.circular(12),
+                        boxShadow: [
+                          BoxShadow(
+                            color: Colors.black.withOpacity(0.2),
+                            blurRadius: 4,
+                            offset: const Offset(0, 2),
+                          ),
+                        ],
+                      ),
+                      child: Row(
+                        children: [
+                          const Icon(Icons.star,
+                              color: Colors.amber, size: 14),
+                          const SizedBox(width: 2),
+                          Text(
+                            provider.rating.toStringAsFixed(1),
+                            style: const TextStyle(
+                                fontWeight: FontWeight.bold, fontSize: 12),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            Padding(
+              padding: const EdgeInsets.all(8.0),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    provider.name,
+                    style: const TextStyle(
+                        fontWeight: FontWeight.bold, fontSize: 16),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                  const SizedBox(height: 4),
+                  Row(
+                    children: [
+                      const Icon(Icons.location_on,
+                          size: 12, color: Colors.grey),
+                      const SizedBox(width: 4),
+                      Flexible(
+                        child: Text(
+                          provider.location,
+                          style: const TextStyle(
+                              fontSize: 12, color: Colors.grey),
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                      ),
+                      const SizedBox(width: 8),
+                      const Icon(Icons.star_border,
+                          size: 12, color: Colors.grey),
+                      const SizedBox(width: 4),
+                      Flexible(
+                        child: Text(
+                          '${provider.reviewCount} reseñas',
+                          style: const TextStyle(
+                              fontSize: 12, color: Colors.grey),
+                           overflow: TextOverflow.ellipsis,
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 4),
+                  Text(
+                    '${provider.serviceCount} servicios disponibles',
+                    style: const TextStyle(fontSize: 12, color: Colors.grey),
+                  ),
+                ],
+              ),
+            ),
+            Padding(
+              padding: const EdgeInsets.fromLTRB(8, 0, 8, 8),
+              child: ElevatedButton(
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: const Color(0xFFFF6B35),
+                  foregroundColor: Colors.white,
                 ),
-              ],
-            ),
-          ),
-          Padding(
-            padding: const EdgeInsets.fromLTRB(8, 0, 8, 8),
-            child: ElevatedButton(
-              onPressed: () async {
-                try {
-                  await cartProvider.addToCart(service);
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(
-                      content: Text('${service.name} agregado al carrito'),
-                      duration: const Duration(seconds: 2),
-                    ),
-                  );
-                } catch (e) {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(
-                      content: Text('Error: ${e.toString()}'),
-                      backgroundColor: Colors.red,
-                    ),
-                  );
-                }
-              },
-              child: const Text('Agregar'),
-            ),
-          ),
-        ],
+                onPressed: () {
+                   context.push('/category/${provider.id}');
+                },
+                child: const Text('Ver servicios'),
+              ),
+            )
+          ],
+        ),
       ),
     );
   }
