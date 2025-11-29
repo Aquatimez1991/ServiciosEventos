@@ -93,16 +93,6 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
                       color: Colors.black87),
                 ),
                 const Spacer(),
-                // Avatar pequeño o saludo
-                CircleAvatar(
-                  radius: 18,
-                  backgroundColor: Colors.grey[200],
-                  child: Text(
-                    userName[0].toUpperCase(),
-                    style: const TextStyle(
-                        color: Color(0xFFFF6B35), fontWeight: FontWeight.bold),
-                  ),
-                ),
               ],
             ),
           ],

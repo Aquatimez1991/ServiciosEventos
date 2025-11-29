@@ -10,7 +10,7 @@ import '../models/order.dart';
 
 class ApiService {
   // USA ESTA URL PARA EL EMULADOR DE ANDROID
-  static const String baseUrl = "http://10.0.2.2:8080/api";
+  static const String baseUrl = "http://10.0.2.2:8081/api";
 
   // ============================================
   // NUEVO MÉTODO
@@ -220,6 +220,54 @@ class ApiService {
     } catch (e) {
       print('Error en checkout: $e');
       throw Exception('No se pudo procesar el pedido.');
+    }
+  }
+
+  // Actualizar perfil de usuario
+  Future<AuthUser> updateUserProfile({
+    required int userId,
+    required String name,
+    required String lastname,
+    required String phone,
+    required String address,
+  }) async {
+    try {
+      final response = await http.put(
+        Uri.parse('$baseUrl/users/$userId'), // Asume que tienes este endpoint en Spring Boot
+        headers: {'Content-Type': 'application/json'},
+        body: jsonEncode({
+          'name': name,
+          'lastname': lastname,
+          'phone': phone,
+          'address': address,
+        }),
+      );
+
+      if (response.statusCode == 200) {
+        return AuthUser.fromJson(jsonDecode(utf8.decode(response.bodyBytes)));
+      } else {
+        throw Exception('Error al actualizar perfil: ${response.body}');
+      }
+    } catch (e) {
+      throw Exception('Error de conexión al actualizar perfil');
+    }
+  }
+
+  // --- AYUDA / CHATBOT ---
+  Future<void> triggerHelpBot(int userId) async {
+    try {
+      final response = await http.post(
+        Uri.parse('$baseUrl/help/trigger'),
+        headers: {'Content-Type': 'application/json'},
+        body: jsonEncode({'userId': userId}),
+      );
+
+      if (response.statusCode != 200) {
+        throw Exception('Error al conectar con el asistente.');
+      }
+    } catch (e) {
+      print('Error triggerHelpBot: $e');
+      throw Exception('No se pudo solicitar ayuda.');
     }
   }
 

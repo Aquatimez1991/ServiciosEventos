@@ -69,4 +69,24 @@ class AuthProvider extends ChangeNotifier {
     _authUser = null;
     notifyListeners();
   }
+
+  Future<void> updateProfile(String name, String lastname, String phone, String address) async {
+    if (_authUser == null) return;
+    try {
+      // 1. Llamar a la API
+      final updatedUser = await _apiService.updateUserProfile(
+        userId: _authUser!.id,
+        name: name,
+        lastname: lastname,
+        phone: phone,
+        address: address,
+      );
+
+      // 2. Actualizar estado local manteniendo el token
+      _authUser = updatedUser;
+      notifyListeners();
+    } catch (e) {
+      rethrow;
+    }
+  }
 }

@@ -9,6 +9,9 @@ import 'providers/cart_provider.dart';
 import 'providers/service_provider.dart';
 import 'services/api_service.dart';
 
+// --- Imports de Modelos ---
+import 'models/order.dart'; // <--- AGREGADO: Necesario para pasar el objeto Order
+
 // --- Imports de Pantallas ---
 import 'screens/loader_screen.dart';
 import 'screens/home_screen.dart';
@@ -70,12 +73,10 @@ final GoRouter _router = GoRouter(
       path: '/loader',
       builder: (context, state) => const LoaderScreen(),
     ),
-    
+
     // --- Rutas DENTRO del Shell (con barra de navegación) ---
-    // CORRECCIÓN: Usamos StatefulShellRoute.indexedStack
     StatefulShellRoute.indexedStack(
       builder: (context, state, navigationShell) {
-        // El builder nos da el navigationShell, que pasamos a nuestro scaffold personalizado
         return ShellScaffold(navigationShell: navigationShell);
       },
       branches: [
@@ -112,17 +113,27 @@ final GoRouter _router = GoRouter(
     // --- Rutas que se abren ENCIMA del Shell ---
     GoRoute(
       path: '/payment',
-       parentNavigatorKey: _rootNavigatorKey,
+      parentNavigatorKey: _rootNavigatorKey,
       builder: (context, state) => const PaymentScreen(),
     ),
+
+    // CORRECCIÓN PRINCIPAL AQUÍ:
     GoRoute(
       path: '/confirmation',
-       parentNavigatorKey: _rootNavigatorKey,
-      builder: (context, state) => const ConfirmationScreen(),
+      parentNavigatorKey: _rootNavigatorKey,
+      builder: (context, state) {
+        // Recuperamos el objeto 'extra' enviado desde PaymentScreen
+        // y lo convertimos (casteamos) a tipo Order.
+        final order = state.extra as Order;
+
+        // Se lo pasamos al constructor de la pantalla
+        return ConfirmationScreen(order: order);
+      },
     ),
+
     GoRoute(
       path: '/category/:categoryId',
-       parentNavigatorKey: _rootNavigatorKey,
+      parentNavigatorKey: _rootNavigatorKey,
       builder: (context, state) {
         final categoryId = state.pathParameters['categoryId'];
         if (categoryId == null) {

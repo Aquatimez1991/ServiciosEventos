@@ -1,14 +1,15 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:go_router/go_router.dart';
-import 'dart:math';
 import '../models/order.dart';
-import '../providers/cart_provider.dart';
 import '../providers/auth_provider.dart';
 import '../utils/formatters.dart';
 
 class ConfirmationScreen extends StatefulWidget {
-  const ConfirmationScreen({super.key});
+  final Order order;
+
+  // El constructor obliga a recibir la orden
+  const ConfirmationScreen({super.key, required this.order});
 
   @override
   State<ConfirmationScreen> createState() => _ConfirmationScreenState();
@@ -23,18 +24,14 @@ class _ConfirmationScreenState extends State<ConfirmationScreen>
   @override
   void initState() {
     super.initState();
-
     _controller = AnimationController(
       vsync: this,
       duration: const Duration(milliseconds: 900),
     );
-
     _scaleAnimation = CurvedAnimation(
       parent: _controller,
       curve: Curves.elasticOut,
     );
-
-    // Iniciar animación
     _controller.forward();
   }
 
@@ -46,14 +43,12 @@ class _ConfirmationScreenState extends State<ConfirmationScreen>
 
   @override
   Widget build(BuildContext context) {
-    final GoRouterState state = GoRouterState.of(context);
-    final Order order = state.extra as Order;
-
     final authProvider = context.read<AuthProvider>();
 
     return Scaffold(
       appBar: AppBar(
         title: const Text('Confirmación de pedido'),
+        automaticallyImplyLeading: false,
       ),
       body: Center(
         child: Padding(
@@ -61,7 +56,6 @@ class _ConfirmationScreenState extends State<ConfirmationScreen>
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              // ✅ Animación del check
               ScaleTransition(
                 scale: _scaleAnimation,
                 child: Container(
@@ -77,19 +71,12 @@ class _ConfirmationScreenState extends State<ConfirmationScreen>
                   ),
                 ),
               ),
-
               const SizedBox(height: 24),
-
               const Text(
                 '¡Pedido confirmado!',
-                style: TextStyle(
-                  fontSize: 22,
-                  fontWeight: FontWeight.bold,
-                ),
+                style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold),
               ),
-
               const SizedBox(height: 24),
-
               Card(
                 child: Padding(
                   padding: const EdgeInsets.all(16),
@@ -98,18 +85,23 @@ class _ConfirmationScreenState extends State<ConfirmationScreen>
                     children: [
                       const Text(
                         'Detalles del pedido',
-                        style: TextStyle(
-                          fontSize: 18,
-                          fontWeight: FontWeight.bold,
-                        ),
+                        style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
                       ),
                       const SizedBox(height: 16),
                       Row(
                         mainAxisAlignment: MainAxisAlignment.spaceBetween,
                         children: [
+                          const Text('Nro. Orden:'),
+                          Text('#${widget.order.id}', style: const TextStyle(fontWeight: FontWeight.bold)),
+                        ],
+                      ),
+                      const SizedBox(height: 8),
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
                           const Text('Total pagado:'),
                           Text(
-                            Formatters.formatPrice(order.total),
+                            Formatters.formatPrice(widget.order.total),
                             style: const TextStyle(
                               fontWeight: FontWeight.bold,
                               color: Color(0xFFFF6B35),
@@ -122,7 +114,7 @@ class _ConfirmationScreenState extends State<ConfirmationScreen>
                         mainAxisAlignment: MainAxisAlignment.spaceBetween,
                         children: [
                           const Text('Estado:'),
-                          Text(order.status),
+                          Text(widget.order.status),
                         ],
                       ),
                       const SizedBox(height: 8),
@@ -130,23 +122,19 @@ class _ConfirmationScreenState extends State<ConfirmationScreen>
                         mainAxisAlignment: MainAxisAlignment.spaceBetween,
                         children: [
                           const Text('Fecha:'),
-                          Text(
-                            Formatters.formatDate(order.createdAt),
-                          ),
+                          Text(Formatters.formatDate(widget.order.createdAt)),
                         ],
                       ),
                     ],
                   ),
                 ),
               ),
-
               const SizedBox(height: 24),
-
               ElevatedButton(
                 onPressed: () {
                   if (authProvider.isLoggedIn &&
                       authProvider.authUser!.role == 'provider') {
-                    context.go('/provider-dashboard');
+                    context.go('/home');
                   } else {
                     context.go('/home');
                   }
@@ -158,13 +146,5 @@ class _ConfirmationScreenState extends State<ConfirmationScreen>
         ),
       ),
     );
-  }
-
-  String _generateOrderNumber() {
-    final random = Random();
-    return List.generate(
-      9,
-          (_) => random.nextInt(36).toRadixString(36),
-    ).join().toUpperCase();
   }
 }
