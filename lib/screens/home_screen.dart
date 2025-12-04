@@ -7,6 +7,7 @@ import 'package:cached_network_image/cached_network_image.dart';
 import '../providers/service_provider.dart';
 import '../providers/auth_provider.dart'; // Importa AuthProvider para el saludo
 import '../models/provider.dart' as model_provider;
+import '../screens/provider_dashboard_screen.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -46,6 +47,16 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
     // Obtenemos el usuario para el saludo
     final authProvider = context.watch<AuthProvider>();
     final user = authProvider.authUser;
+
+    // --- DEBUG ---
+    print("🔍 DEBUG ROL: ${user?.email} tiene el rol: '${user?.role}'");
+    // -------------
+
+    // REDIRECCIÓN INTERNA
+    if (user?.role == 'supplier') {
+      return const ProviderDashboardScreen();
+    }
+
     final userName = user?.name.split(' ')[0] ?? 'Invitado';
 
     final allProviders = serviceProvider.providers;

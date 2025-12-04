@@ -22,6 +22,7 @@ import 'screens/confirmation_screen.dart';
 import 'screens/service_list_screen.dart';
 import 'screens/shell_scaffold.dart';
 import 'utils/app_theme.dart';
+import 'screens/sales_dashboard_screen.dart';
 
 void main() {
   runApp(const MyApp());
@@ -142,6 +143,12 @@ final GoRouter _router = GoRouter(
         }
         return ServiceListScreen(categoryId: categoryId);
       },
+    ),
+
+    GoRoute(
+      path: '/sales-dashboard',
+      parentNavigatorKey: _rootNavigatorKey, // Para que tape el menú inferior
+      builder: (context, state) => const SalesDashboardScreen(),
     ),
   ],
 );
